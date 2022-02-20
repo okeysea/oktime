@@ -5,12 +5,18 @@ sigExit=30
 sigQuit=29
 sigWinCh=28
 
-sigStart=32
-sigStop=33
-sigLongRest=34
-sigShortRest=35
+sigh=35
+sigj=36
+sigk=37
+sigl=38
+sigH=39
+sigJ=40
+sigK=41
+sigL=42
 
 gStartTime=`date +"%s"`
+
+gState="menu"
 
 gPrevM2=-1
 gPrevM1=-1
@@ -28,6 +34,9 @@ gWinHeight=`tput lines`
 
 gWaitTime=0.2
 gTimeDisplayMode=1
+
+gMenus=("[S]topwatch" "[P]oromodo" "[E]xit")
+gMenuCursor=0
 
 function Time()
 {
@@ -64,12 +73,12 @@ function KeyReceive()
   while :; do
     read -s -n 1 key
 
-    if [[ $key == $cESC || $key == "Q" ]]; then
+    if [[ $key == $cESC ]]; then
       Exit
-    elif [[ $key == "S" || $key == "s" ]]; then sig=$sigStart
-    elif [[ $key == "T" || $key == "t" ]]; then sig=$sigStop
-    elif [[ $key == "L" || $key == "l" ]]; then sig=$sigLongRest
-    elif [[ $key == "H" || $key == "h" ]]; then sig=$sigShortRest
+    elif [[ $key == "h" ]]; then sig=$sigh
+    elif [[ $key == "j" ]]; then sig=$sigj
+    elif [[ $key == "k" ]]; then sig=$sigk
+    elif [[ $key == "l" ]]; then sig=$sigl
     else sig=0
     fi
 
@@ -89,10 +98,10 @@ function Display()
   # ウインドウサイズ変更
   trap "DisplayRefresh" $sigWinCh
 
-  trap "sig=$sigStart" $sigStart
-  trap "sig=$sigStop" $sigStop
-  trap "sig=$sigLongRest" $sigLongRest
-  trap "sig=$sigShortRest" $sigShortRest
+  trap "sig=$sigh;" $sigh
+  trap "sig=$sigj;" $sigj
+  trap "sig=$sigk;" $sigk
+  trap "sig=$sigl;" $sigl
 
   tput clear
 
@@ -101,15 +110,48 @@ function Display()
     sigThis=$sig
     sig=0
 
-    if ((sigThis == sigStart)); then echo "START"
-    elif ((sigThis == sigStop)); then echo "STOP"
-    elif ((sigThis == sigLongRest)); then echo "LongRest"
-    elif ((sigThis == sigShortRest)); then echo "ShortRest"
-    else DisplayTime $(( $(date +"%s") - gStartTime )) \
+    echo $sigThis
+
+    UpdateState $sigThis
+    DrawScreen
+
+    # if ((sigThis == sigh)); then echo "START"
+    # elif ((sigThis == sigj)); then echo "STOP"
+    # elif ((sigThis == sigk)); then echo "LongRest"
+    # elif ((sigThis == sigl)); then echo "ShortRest"
+    # else DisplayTime $(( $(date +"%s") - gStartTime )) \
+    #   $(CalcHalfPos $gWinWidth  $gWatchSizeX) \
+    #   $(CalcHalfPos $gWinHeight $gWatchSizeY)
+    # fi
+  done
+}
+
+function UpdateState()
+{
+  local local_sig
+  local_sig=$1
+
+  if ((gState == "menu")); then
+    if (("$local_sig" == "$sigh")); then
+      gState="stopwatch"
+    fi
+  fi
+}
+
+function DrawScreen()
+{
+  echo $gState
+  echo $(("$gState" = "menu"))
+  if [[ "$gState" == "menu" ]]; then
+    echo "yeah!"
+    for i in "${!gMenus[@]}"; do
+      echo -ne ${gMenus[$i]}
+    done
+  elif [[ "$gState" == "stopwatch" ]]; then
+    DisplayTime $(( $(date +"%s") - gStartTime )) \
       $(CalcHalfPos $gWinWidth  $gWatchSizeX) \
       $(CalcHalfPos $gWinHeight $gWatchSizeY)
-    fi
-  done
+  fi
 }
 
 function Exit()
@@ -253,14 +295,23 @@ function DefNums()
 EOF
 }
 
+function SandwichStr()
+{
+  echo -ne "$1" && echo -ne "$2" && echo -ne "$3"
+}
+
 function NumChar()
 {
-  tput setab 4 && echo -n ' ' && tput sgr0
+  local str
+  str=${1:-" "}
+  SandwichStr "$(tput setab 4)" "$str" "$(tput sgr0)"
 }
 
 function EmptyChar()
 {
-  tput setab 0 && echo -n ' ' && tput sgr0
+  local str
+  str=${1:-" "}
+  SandwichStr "$(tput setab 0)" "$str" "$(tput sgr0)"
 }
 
 function NumStr()
@@ -396,7 +447,7 @@ elif [[ "$1" == "--dispn" ]]; then
   clear
   PutNumToDisplay $2 $3 $4
 elif [[ "$1" == "--timed" ]]; then
-   DisplayMMSS $2 $3 $4
+  DisplayMMSS $2 $3 $4
 elif [[ "$1" == "--secondtime" ]]; then
   GetSecondToTime $2
 elif [[ "$1" == "--time" ]]; then
