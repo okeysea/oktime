@@ -18,6 +18,6 @@ By the way, I have very*1000 poor English. Thank you.
 
 1. Oops! This project still in progress. You will have to wait for completion of my tasks.
 
-## Anythings Else
+## Anything Else
 
 Have a nice day! :D
